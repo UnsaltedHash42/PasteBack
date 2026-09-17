@@ -16,6 +16,22 @@ and nothing sticks around longer than you want.
 - No cloud, no accounts, no analytics, no telemetry, no network use except
   user-initiated update checks
 
+## Install
+
+    brew install --cask UnsaltedHash42/tap/pasteback --no-quarantine
+
+Or download `Pasteback-1.0.0.zip` from
+[Releases](https://github.com/UnsaltedHash42/PasteBack/releases), unzip to
+/Applications, and strip the quarantine attribute:
+
+    xattr -dr com.apple.quarantine /Applications/Pasteback.app
+
+The flag/attribute is required because the build is adhoc-signed (no
+Developer ID, not notarized). macOS runs quarantined un-notarized apps with
+restricted capabilities — clipboard content reads and local persistence stop
+working. Once the app is signed with a Developer ID and notarized, the plain
+install will work with no extra steps.
+
 ## Build
 
 Requires the Swift 6 toolchain (Xcode or Command Line Tools) on macOS 14+.
