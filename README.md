@@ -18,19 +18,73 @@ and nothing sticks around longer than you want.
 
 ## Install
 
-    brew install --cask UnsaltedHash42/tap/pasteback --no-quarantine
+Homebrew (macOS 14+):
 
-Or download `Pasteback-1.0.0.zip` from
-[Releases](https://github.com/UnsaltedHash42/PasteBack/releases), unzip to
-/Applications, and strip the quarantine attribute:
-
+    brew install --cask UnsaltedHash42/tap/pasteback
     xattr -dr com.apple.quarantine /Applications/Pasteback.app
 
-The flag/attribute is required because the build is adhoc-signed (no
-Developer ID, not notarized). macOS runs quarantined un-notarized apps with
-restricted capabilities — clipboard content reads and local persistence stop
-working. Once the app is signed with a Developer ID and notarized, the plain
-install will work with no extra steps.
+The second line is required for now. The build is adhoc-signed (no Developer
+ID, not notarized), and Homebrew 7 quarantines every cask download — macOS
+then runs the app with restricted capabilities (clipboard reads and local
+storage silently stop working). Stripping the attribute restores full
+function. Re-run that line after each `brew upgrade`. Notarization is tracked
+in [issue #1](https://github.com/UnsaltedHash42/PasteBack/issues/1); once it
+ships, the plain `brew install` will be enough.
+
+Direct download: get `Pasteback-1.0.0.zip` from
+[Releases](https://github.com/UnsaltedHash42/PasteBack/releases), unzip
+`Pasteback.app` to /Applications, and run the same `xattr -dr` line.
+
+## Usage
+
+**Open the panel.** Click the clipboard icon in the menu bar, or press
+⌃⇧⌘C (works from any app). The panel shows your most recent items first.
+
+**Restore an item.** Click it. Its content goes back on the system clipboard;
+Pasteback never pastes into apps by itself, so press ⌘V in the target app.
+Nothing is auto-pasted and no Accessibility permission is used.
+
+**Search.** Type in the search field; the list filters by preview text as you
+type.
+
+**Pin, delete, clear.** Right-click an item for *Restore to Clipboard*,
+*Pin*/*Unpin*, and *Delete*. Pinned items never expire and show a pin marker.
+The trash button in the footer clears everything (asks first). The gear opens
+Settings; the power button quits.
+
+**What gets captured.** Plain text; rich text is kept as plain text; URLs
+(saved as link + text, so they paste into both browsers and editors); PNG/TIFF
+images up to 10 MB (with a thumbnail in the list); file references stored as
+paths — the files themselves are never copied. Consecutive identical copies
+are not stored twice.
+
+**How long items live** (unpinned; all configurable in Settings):
+
+| Kind | Default expiry |
+|---|---|
+| Text and links | 1 hour |
+| Images | 1 day |
+| File references | 1 day |
+| Likely secrets | 30 seconds |
+| Pinned items | never |
+
+Likely secrets are detected heuristically: JWTs, prefixed API keys
+(`sk-…`, `ghp_…`, `AKIA…`, `xoxb-…`, `AIza…`), `key = value` secrets, bearer
+tokens, standalone token-shaped strings, and card numbers that pass the Luhn
+check. Ordinary prose is not flagged. This is a best-effort nudge toward
+safety, not a password manager.
+
+**Global hotkey.** Default ⌃⇧⌘C. Change it in Settings → Global Hotkey →
+Record, then press the new combination. If a combination is unavailable,
+Settings shows a warning until you pick another one.
+
+**Launch at login.** Toggle it in Settings. Registered through SMAppService,
+so it appears in System Settings → General → Login Items and can be revoked
+there.
+
+**Updates.** Settings → Check for Updates… is the only network access in the
+app, and only when you click it. The feed is a placeholder until a real one
+is hosted, so it reports “up to date”.
 
 ## Build
 
@@ -48,14 +102,10 @@ shipped with CLT, so the UI avoids SwiftUI state property wrappers (`@State`
 and friends) and uses `ObservableObject` models plus small AppKit wrappers.
 Full Xcode is not required.
 
-## Run
+## Run from source
 
     make run            # dev build directly from the CLI
     open dist/Pasteback.app
-
-Pasteback shows a clipboard icon in the menu bar. Click it (or press the
-hotkey) for the history panel. Clicking an item writes it back to the
-clipboard; press ⌘V in the target app to paste.
 
 ## Tests
 
@@ -81,6 +131,10 @@ hotkey registration/change/conflict handling.
   `https://sparkle-project.org`, account `ed25519` (same item Sparkle's own
   tools use).
 
+To remove everything: quit Pasteback, delete the app, delete
+`~/Library/Application Support/Pasteback`, and remove the two Keychain items
+above. Clear All (in the panel or Settings) wipes just the history file.
+
 ## Privacy behavior
 
 - Clipboard payloads never leave the machine and are never written to disk in
@@ -102,16 +156,17 @@ app and points `SUFeedURL` at that bundled `file://` path, so “Check for
 Updates…” cleanly reports “up to date”. The `file://` URL is absolute; if you
 move `Pasteback.app`, rebuild (`make app`) or wait for the real feed. To ship
 updates: run `make keys` (stores the ed25519 private key in your login
-Keychain, prints the public key — committed at `Resources/SparklePublicED.key`),
-host the appcast somewhere real, set that URL as `SUFeedURL` in
-`scripts/Resources/App-Info.plist`, and sign each release with Sparkle's
-`sign_update`.
+Keychain, prints the public key — kept locally at
+`Resources/SparklePublicED.key`, not committed), host the appcast somewhere
+real, set that URL as `SUFeedURL` in `scripts/Resources/App-Info.plist`, and
+sign each release with Sparkle's `sign_update`.
 
 ## Settings
 
 Launch at login · global hotkey (recordable; conflicts reported) · maximum
-stored items · expiration for text / images / file references · sensitive-item
-expiration · open storage folder · clear all items.
+stored items (10/20/50/100) · expiration for text / images / file references
+· sensitive-item expiration · open storage folder · check for updates ·
+clear all items.
 
 ## Architecture
 
@@ -147,6 +202,8 @@ Deliberate deviations:
 - End-to-end on this machine: launched `dist/Pasteback.app`, wrote items to
   the pasteboard via the NSPasteboard API, confirmed the encrypted store grew,
   contained no plaintext, and decrypted correctly with the Keychain key.
+- The documented install path (brew install → `xattr -dr` quarantine strip →
+  launch) was verified the same way on the Homebrew-installed copy.
 - UI (panel click-through) was not driven programmatically (no accessibility
   permission in the build environment); restore behavior is covered by unit
   tests against real `NSPasteboard` instances.
