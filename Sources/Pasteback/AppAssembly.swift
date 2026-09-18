@@ -63,13 +63,29 @@ final class AppAssembly {
         hotkeyCenter.onTrigger = { [weak self] in
             self?.statusBar?.togglePanel()
         }
-        hotkeyCenter.activate(settings.hotkey)
+        if settings.hotkeyEnabled {
+            hotkeyCenter.activate(settings.hotkey)
+        }
 
         settings.$hotkey
             .dropFirst()
             .receive(on: RunLoop.main)
             .sink { [weak self] hotkey in
-                _ = self?.hotkeyCenter.activate(hotkey)
+                guard let self, self.settings.hotkeyEnabled else { return }
+                _ = self.hotkeyCenter.activate(hotkey)
+            }
+            .store(in: &cancellables)
+
+        settings.$hotkeyEnabled
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                if enabled {
+                    _ = self.hotkeyCenter.activate(self.settings.hotkey)
+                } else {
+                    self.hotkeyCenter.deactivate()
+                }
             }
             .store(in: &cancellables)
 

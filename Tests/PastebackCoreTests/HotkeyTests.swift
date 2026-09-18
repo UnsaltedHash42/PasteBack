@@ -75,7 +75,7 @@ struct HotkeyTests {
         #expect(ok)
         #expect(center.activeHotkey == newHotkey)
         #expect(registrar.registrations.count == 1)
-        #expect(registrar.registrations[1]?.hotkey == newHotkey)
+        #expect(registrar.registrations[2]?.hotkey == newHotkey)
         #expect(registrar.unregisteredIDs.contains(1))
     }
 
@@ -87,8 +87,40 @@ struct HotkeyTests {
         center.activate(Hotkey.defaultHotkey())
         center.activate(Hotkey(keyCode: 1, modifiers: UInt32(cmdKey), label: "⌘S"))
 
+        registrar.fire(id: 2)
+        #expect(fired == 1)
         registrar.fire(id: 1)
         #expect(fired == 1)
+    }
+
+    @Test func failedSwapKeepsPreviousHotkeyWorking() {
+        let registrar = FakeHotkeyRegistrar()
+        let center = HotkeyCenter(registrar: registrar)
+        var fired = 0
+        center.onTrigger = { fired += 1 }
+        let original = Hotkey.defaultHotkey()
+        center.activate(original)
+
+        registrar.shouldSucceed = false
+        let ok = center.activate(Hotkey(keyCode: 46, modifiers: UInt32(cmdKey | optionKey), label: "⌘⌥W"))
+
+        #expect(!ok)
+        #expect(center.registrationFailed)
+        #expect(center.isRegistered)
+        #expect(center.activeHotkey == original)
+
+        registrar.fire(id: 1)
+        #expect(fired == 1)
+    }
+
+    @Test func activatingSameHotkeyTwiceRegistersOnce() {
+        let registrar = FakeHotkeyRegistrar()
+        let center = HotkeyCenter(registrar: registrar)
+        let hotkey = Hotkey(keyCode: 3, modifiers: UInt32(cmdKey), label: "⌘F")
+
+        #expect(center.activate(hotkey))
+        #expect(center.activate(hotkey))
+        #expect(registrar.registrations.count == 1)
     }
 
     @Test func failedRegistrationIsReportedNotCrashed() {

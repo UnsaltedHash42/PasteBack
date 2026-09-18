@@ -31,15 +31,21 @@ public protocol HotkeyRegistering: AnyObject {
     func unregister(id: UInt32)
 }
 
-/// Owns the single active hotkey and reports registration status.
+/// Owns the active hotkey and reports registration status. Registration uses
+/// two alternating slots so a new hotkey is registered before the old one is
+/// released — a failed swap never leaves the user without a working hotkey.
 public final class HotkeyCenter: ObservableObject {
     @Published public private(set) var isRegistered = false
     @Published public private(set) var activeHotkey: Hotkey?
+    /// True when the most recent activation attempt failed; the previously
+    /// active hotkey (if any) keeps working in that case.
+    @Published public private(set) var registrationFailed = false
 
     public var onTrigger: (() -> Void)?
 
     private let registrar: HotkeyRegistering
-    private let hotkeyID: UInt32 = 1
+    private let slotIDs: [UInt32] = [1, 2]
+    private var nextSlot = 0
     private var activeID: UInt32?
 
     public init(registrar: HotkeyRegistering) {
@@ -48,16 +54,33 @@ public final class HotkeyCenter: ObservableObject {
 
     @discardableResult
     public func activate(_ hotkey: Hotkey) -> Bool {
-        deactivate()
-        let ok = registrar.register(hotkey, id: hotkeyID) { [weak self] in
+        if activeHotkey == hotkey, activeID != nil {
+            isRegistered = true
+            registrationFailed = false
+            return true
+        }
+
+        let id = slotIDs[nextSlot % slotIDs.count]
+        nextSlot += 1
+        let ok = registrar.register(hotkey, id: id) { [weak self] in
             self?.onTrigger?()
         }
-        isRegistered = ok
+
         if ok {
+            if let previous = activeID, previous != id {
+                registrar.unregister(id: previous)
+            }
+            activeID = id
             activeHotkey = hotkey
-            activeID = hotkeyID
+            isRegistered = true
+            registrationFailed = false
+            AppLog.hotkey.info("Hotkey \(hotkey.label, privacy: .public) registered")
         } else {
-            AppLog.hotkey.error("Hotkey registration failed for \(hotkey.label, privacy: .public)")
+            isRegistered = activeID != nil
+            registrationFailed = true
+            AppLog.hotkey.error(
+                "Hotkey registration failed for \(hotkey.label, privacy: .public); keeping previous hotkey"
+            )
         }
         return ok
     }
@@ -69,5 +92,6 @@ public final class HotkeyCenter: ObservableObject {
         activeID = nil
         activeHotkey = nil
         isRegistered = false
+        registrationFailed = false
     }
 }

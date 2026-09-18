@@ -74,9 +74,11 @@ tokens, standalone token-shaped strings, and card numbers that pass the Luhn
 check. Ordinary prose is not flagged. This is a best-effort nudge toward
 safety, not a password manager.
 
-**Global hotkey.** Default ⌃⇧⌘C. Change it in Settings → Global Hotkey →
-Record, then press the new combination. If a combination is unavailable,
-Settings shows a warning until you pick another one.
+**Global hotkey.** Default ⌃⇧⌘C, and fully customizable: Settings → Global
+Hotkey → Record, then press the new combination (at least one modifier key;
+Esc cancels). The enable toggle turns the hotkey off entirely. If a chosen
+combination is unavailable, the previous hotkey keeps working and Settings
+shows a warning until you pick another one.
 
 **Launch at login.** Toggle it in Settings. Registered through SMAppService,
 so it appears in System Settings → General → Login Items and can be revoked
@@ -112,10 +114,11 @@ Full Xcode is not required.
     make test
 
 (On CLT installs this loads the Swift Testing macro plugin explicitly; see the
-Makefile.) 55 tests cover pasteboard capture/classification/restore, storage
+Makefile.) 57 tests cover pasteboard capture/classification/restore, storage
 dedupe/limit/expiry, encryption (on-disk ciphertext, round-trip, wrong key,
 Keychain), retention per kind + sensitive + pinned, sensitive detection, and
-hotkey registration/change/conflict handling.
+hotkey registration/change/conflict handling (including failed swaps keeping
+the previous hotkey).
 
 ## Where data lives
 

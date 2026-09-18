@@ -52,15 +52,22 @@ struct SettingsView: View {
             }
 
             Section("Global Hotkey") {
-                HotkeyRecorderField(current: settings.hotkey) { settings.hotkey = $0 }
-                if hotkeyCenter.isRegistered {
-                    Label("Hotkey active", systemImage: "checkmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                } else {
-                    Label("Shortcut unavailable — choose another combination", systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+                Toggle("Enable global hotkey", isOn: $settings.hotkeyEnabled)
+                if settings.hotkeyEnabled {
+                    HotkeyRecorderField(current: settings.hotkey) { settings.hotkey = $0 }
+                    if hotkeyCenter.registrationFailed {
+                        Label("Shortcut unavailable — previous hotkey kept", systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else if hotkeyCenter.isRegistered {
+                        Label("Hotkey active", systemImage: "checkmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    } else {
+                        Label("Shortcut unavailable — choose another combination", systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
 

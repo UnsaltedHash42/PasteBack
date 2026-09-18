@@ -20,6 +20,7 @@ public final class AppSettings: ObservableObject, SettingsStoring {
     private enum Key {
         static let launchAtLogin = "pasteback.launchAtLogin"
         static let hotkeyCode = "pasteback.hotkey.keyCode"
+        static let hotkeyEnabled = "pasteback.hotkey.enabled"
         static let hotkeyModifiers = "pasteback.hotkey.modifiers"
         static let hotkeyLabel = "pasteback.hotkey.label"
         static let maxItems = "pasteback.maxItems"
@@ -50,9 +51,11 @@ public final class AppSettings: ObservableObject, SettingsStoring {
         let image = defaults.object(forKey: Key.imageExpiration) as? TimeInterval ?? AppSettings.defaultImageExpiration
         let file = defaults.object(forKey: Key.fileExpiration) as? TimeInterval ?? AppSettings.defaultFileExpiration
         let sensitive = defaults.object(forKey: Key.sensitiveExpiration) as? TimeInterval ?? AppSettings.defaultSensitiveExpiration
+        let hotkeyEnabled = defaults.object(forKey: Key.hotkeyEnabled) as? Bool ?? true
 
         self.launchAtLogin = launchAtLogin
         self.hotkey = hotkey
+        self.hotkeyEnabled = hotkeyEnabled
         self.maxItems = maxItems
         self.textExpiration = text
         self.imageExpiration = image
@@ -70,6 +73,10 @@ public final class AppSettings: ObservableObject, SettingsStoring {
             defaults.set(Int(hotkey.modifiers), forKey: Key.hotkeyModifiers)
             defaults.set(hotkey.label, forKey: Key.hotkeyLabel)
         }
+    }
+
+    @Published public var hotkeyEnabled: Bool {
+        didSet { defaults.set(hotkeyEnabled, forKey: Key.hotkeyEnabled) }
     }
 
     @Published public var maxItems: Int {
