@@ -84,9 +84,33 @@ shows a warning until you pick another one.
 so it appears in System Settings → General → Login Items and can be revoked
 there.
 
-**Updates.** Settings → Check for Updates… is the only network access in the
-app, and only when you click it. The feed is a placeholder until a real one
-is hosted, so it reports “up to date”.
+**Command line.** Pasteback also works from the shell. The Homebrew cask
+installs the binary as `pasteback`; from a direct download it lives inside
+the app bundle (`Pasteback.app/Contents/MacOS/pasteback-cli`). The CLI talks
+to the running app over a local socket in the storage folder (`ipc.sock`,
+readable only by your user) — it never touches the encrypted store or the
+Keychain itself, so nothing is decrypted outside the app. The app must be
+running.
+
+    pasteback list [count] [--json]    newest first; index 0 is the most recent item
+    pasteback get <index>              print one item's full content to stdout
+
+Examples:
+
+    $ pasteback list 5
+    0   Text  25 seconds ago  Q3 revenue numbers…
+    1   Link  1 hour ago      https://example.com/article
+    2*  Text  yesterday       pinned snippet
+
+    $ pasteback get 0
+    Q3 revenue numbers, full clipboard text…
+
+Text and links print exactly what was copied (pipe or redirect them like
+`pbpaste`); file references print one path per line; images write raw
+bytes, so redirect them (`pasteback get 2 > clip.png`). `*` marks pinned
+items. `--json` prints machine-readable entries (`index`, `kind`,
+`preview`, `createdAt`, `isPinned`). Exit code 1 with a message on stderr
+if the app is not running or the index is out of range.
 
 ## Build
 

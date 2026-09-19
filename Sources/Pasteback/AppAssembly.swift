@@ -14,6 +14,7 @@ final class AppAssembly {
     private let loginItem: SMLoginItem
     private let updaterController: SPUStandardUpdaterController
     private let storeDirectory: URL
+    private let ipcServer: ClipboardIpcServer
 
     private var statusBar: StatusBarCoordinator?
     private var settingsWindow: SettingsWindowController?
@@ -38,6 +39,7 @@ final class AppAssembly {
         monitor = ClipboardMonitor(pasteboard: pasteboard)
         retention = RetentionService(history: history, dates: SystemDateProvider())
         hotkeyCenter = HotkeyCenter(registrar: CarbonHotkeyRegistrar())
+        ipcServer = ClipboardIpcServer(history: history)
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
@@ -99,6 +101,7 @@ final class AppAssembly {
 
         monitor.start()
         retention.start()
+        ipcServer.start()
     }
 
     private func showSettings() {

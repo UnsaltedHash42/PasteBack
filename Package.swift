@@ -20,6 +20,10 @@ let package = Package(
             name: "Pasteback",
             dependencies: ["PastebackCore", .product(name: "Sparkle", package: "Sparkle")]
         ),
+        .executableTarget(
+            name: "pasteback-cli",
+            dependencies: ["PastebackCore"]
+        ),
         .testTarget(
             name: "PastebackCoreTests",
             dependencies: ["PastebackCore"]

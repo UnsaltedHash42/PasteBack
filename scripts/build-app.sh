@@ -26,6 +26,15 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resources"
 
 cp "$BIN" "$APP/Contents/MacOS/Pasteback"
+CLI="$ROOT/.build/$CONFIG/pasteback-cli"
+if [ ! -f "$CLI" ]; then
+    CLI="$(find "$ROOT/.build" -type f -path "*$CONFIG_CAP/pasteback-cli" -perm -111 | head -1)"
+fi
+if [ ! -f "$CLI" ]; then
+    echo "error: pasteback-cli binary not found" >&2
+    exit 1
+fi
+cp "$CLI" "$APP/Contents/MacOS/pasteback-cli"
 
 PUBKEY=""
 if [ -f "$ROOT/Resources/SparklePublicED.key" ]; then
