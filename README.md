@@ -13,6 +13,8 @@ and nothing sticks around longer than you want.
 - Everything encrypted at rest with AES-256-GCM; key lives in the Keychain
 - Retention: unpinned items expire (text 1 h, images/files 1 d by default);
   likely secrets (tokens, API keys, card numbers) expire in seconds
+- Command line access: `pasteback list` / `pasteback get` work like `pbpaste`
+  for your whole history (see below)
 - No cloud, no accounts, no analytics, no telemetry, no network use except
   user-initiated update checks
 
@@ -138,11 +140,12 @@ Full Xcode is not required.
     make test
 
 (On CLT installs this loads the Swift Testing macro plugin explicitly; see the
-Makefile.) 57 tests cover pasteboard capture/classification/restore, storage
+Makefile.) 63 tests cover pasteboard capture/classification/restore, storage
 dedupe/limit/expiry, encryption (on-disk ciphertext, round-trip, wrong key,
-Keychain), retention per kind + sensitive + pinned, sensitive detection, and
+Keychain), retention per kind + sensitive + pinned, sensitive detection,
 hotkey registration/change/conflict handling (including failed swaps keeping
-the previous hotkey).
+the previous hotkey), and the CLI socket protocol (list/get round-trips,
+error paths, formatting).
 
 ## Where data lives
 
@@ -231,6 +234,9 @@ Deliberate deviations:
   contained no plaintext, and decrypted correctly with the Keychain key.
 - The documented install path (brew install → `xattr -dr` quarantine strip →
   launch) was verified the same way on the Homebrew-installed copy.
+- The CLI was verified end-to-end against both the dist build and the
+  Homebrew-installed 1.1.0 build: `pasteback list`, `list --json`, `get`,
+  and the out-of-range error path.
 - UI (panel click-through) was not driven programmatically (no accessibility
   permission in the build environment); restore behavior is covered by unit
   tests against real `NSPasteboard` instances.
