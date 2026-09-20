@@ -15,7 +15,8 @@ final class StatusBarCoordinator {
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: content())
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "Pasteback")
+            button.image = MenuBarIcon.image()
+            button.image?.isTemplate = true
             button.target = self
             button.action = #selector(StatusBarCoordinator.togglePanel)
         }
