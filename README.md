@@ -1,4 +1,7 @@
-# Pasteback
+<div align="center">
+  <img src="Resources/AppIcon.png" alt="Pasteback" width="180" height="180">
+  <h1>Pasteback</h1>
+</div>
 
 A minimal, local-first clipboard history utility for macOS 14+.
 
