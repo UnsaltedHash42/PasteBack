@@ -150,6 +150,24 @@ hotkey registration/change/conflict handling (including failed swaps keeping
 the previous hotkey), and the CLI socket protocol (list/get round-trips,
 error paths, formatting).
 
+## Releases
+
+Releases are built by CI
+([`.github/workflows/build-release.yml`](.github/workflows/build-release.yml)):
+pushing a `v*` tag runs the test suite, builds a universal
+(`arm64` + `x86_64`) `Pasteback.app`, and publishes a GitHub Release with
+`Pasteback-<version>.zip` and a `SHA256SUMS` file. The tag is the source of
+truth for the released version: CI stamps it into the app's
+`CFBundleShortVersionString`, so the released app always reports the tag
+version (e.g. `v1.2.3` → `1.2.3`; the part after `v` must be numeric). The
+version in `scripts/Resources/App-Info.plist` is only the local-build
+fallback.
+
+The workflow can also be run manually (Actions → Build & Release): with the
+tag input left empty it produces a `0.0.0` artifacts-only smoke build
+(nothing is published); with an existing tag it rebuilds and re-uploads the
+assets to that tag's existing release.
+
 ## Where data lives
 
 - History: `~/Library/Application Support/Pasteback/History.store` — one
