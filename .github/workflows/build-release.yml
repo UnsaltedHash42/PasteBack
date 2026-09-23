@@ -55,7 +55,7 @@ jobs:
 
       - name: Verify stamped version and universal binaries
         run: |
-          STAMPED="$(PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Pasteback.app/Contents/Info.plist)"
+          STAMPED="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Pasteback.app/Contents/Info.plist)"
           if [ "$STAMPED" != "$APP_VERSION" ]; then
             echo "error: app reports version '$STAMPED', expected '$APP_VERSION'" >&2
             exit 1

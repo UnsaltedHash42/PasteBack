@@ -53,9 +53,11 @@ cp "$ROOT/docs/appcast.xml" "$APP/Contents/Resources/appcast.xml"
 # values pass through unchanged for local/dev builds.
 if [ -n "${APP_VERSION:-}" ]; then
     BUILD_NUM="$(git -C "$ROOT" rev-list --count HEAD)"
+    # PlistBuddy lives in /usr/libexec, which is not always on PATH (e.g. CI runners).
+    PLIST_BUDDY="$(command -v PlistBuddy 2>/dev/null || echo /usr/libexec/PlistBuddy)"
     echo "==> stamping version $APP_VERSION (build $BUILD_NUM)"
-    PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$APP/Contents/Info.plist"
-    PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$APP/Contents/Info.plist"
+    "$PLIST_BUDDY" -c "Set :CFBundleShortVersionString $APP_VERSION" "$APP/Contents/Info.plist"
+    "$PLIST_BUDDY" -c "Set :CFBundleVersion $BUILD_NUM" "$APP/Contents/Info.plist"
 fi
 
 if [ -n "$SPARKLE_FW" ]; then
