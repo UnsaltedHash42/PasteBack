@@ -7,8 +7,8 @@ cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 CONFIG="${1:-release}"
 CONFIG_CAP="$(printf '%s' "$CONFIG" | cut -c1 | tr '[:lower:]' '[:upper:]')$(printf '%s' "$CONFIG" | cut -c2-)"
-echo "==> swift build -c $CONFIG"
-swift build -c "$CONFIG"
+echo "==> swift build -c $CONFIG ${SWIFT_BUILD_ARGS:-}"
+swift build -c "$CONFIG" ${SWIFT_BUILD_ARGS:-}
 
 BIN="$ROOT/.build/$CONFIG/Pasteback"
 # New SwiftPM layouts keep products under .build/out/Products/<Config>.
@@ -46,6 +46,17 @@ sed -e "s|__SPARKLE_PUBLIC_KEY__|$PUBKEY|" \
     -e "s|__SU_FEED_URL__|file://$APP/Contents/Resources/appcast.xml|" \
     "$ROOT/scripts/Resources/App-Info.plist" > "$APP/Contents/Info.plist"
 cp "$ROOT/docs/appcast.xml" "$APP/Contents/Resources/appcast.xml"
+
+# Optional version stamping (release builds). When APP_VERSION is set
+# (numeric, e.g. 1.2.3), it becomes CFBundleShortVersionString and the
+# commit count becomes CFBundleVersion. Unset, the checked-in plist
+# values pass through unchanged for local/dev builds.
+if [ -n "${APP_VERSION:-}" ]; then
+    BUILD_NUM="$(git -C "$ROOT" rev-list --count HEAD)"
+    echo "==> stamping version $APP_VERSION (build $BUILD_NUM)"
+    PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$APP/Contents/Info.plist"
+    PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$APP/Contents/Info.plist"
+fi
 
 if [ -n "$SPARKLE_FW" ]; then
     ditto "$SPARKLE_FW" "$APP/Contents/Frameworks/Sparkle.framework"
