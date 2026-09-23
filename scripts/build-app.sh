@@ -77,6 +77,10 @@ fi
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/Pasteback" 2>/dev/null || true
 
 echo "==> codesign (adhoc)"
+# Sign nested code innermost-out before sealing the bundle; unsigned
+# subcomponents make the outer seal fail ("code object is not signed at all").
+codesign --force --sign - "$APP/Contents/MacOS/pasteback-cli" >/dev/null
+codesign --force --sign - "$APP/Contents/MacOS/Pasteback" >/dev/null
 codesign --force --sign - "$APP/Contents/Frameworks/Sparkle.framework" >/dev/null
 codesign --force --sign - "$APP" >/dev/null
 
