@@ -1,0 +1,92 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (leave empty to build without publishing)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Test, build universal app, publish release
+    runs-on: macos-15
+    env:
+      # Tag being released: the pushed tag, or the workflow_dispatch input.
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # Full history so `git rev-list --count HEAD` (CFBundleVersion) is meaningful.
+          fetch-depth: 0
+
+      - name: Run tests
+        run: swift test
+
+      - name: Resolve app version
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            # Strip the leading v; must stay purely numeric for macOS/Homebrew.
+            VERSION="${RELEASE_TAG#v}"
+            case "$VERSION" in
+              [0-9]*) ;;
+              *) echo "error: tag '$RELEASE_TAG' does not carry a numeric version" >&2; exit 1 ;;
+            esac
+          else
+            # Untagged dispatch build: clearly unreleased, still numeric.
+            VERSION="0.0.0"
+          fi
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Building Pasteback $VERSION"
+
+      - name: Build universal Pasteback.app (arm64 + x86_64)
+        run: |
+          scripts/make-icon.sh
+          APP_VERSION="$APP_VERSION" \
+            SWIFT_BUILD_ARGS="--arch arm64 --arch x86_64" scripts/build-app.sh release
+
+      - name: Verify stamped version and universal binaries
+        run: |
+          STAMPED="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Pasteback.app/Contents/Info.plist)"
+          if [ "$STAMPED" != "$APP_VERSION" ]; then
+            echo "error: app reports version '$STAMPED', expected '$APP_VERSION'" >&2
+            exit 1
+          fi
+          echo "Info.plist version OK: $STAMPED"
+          lipo -archs dist/Pasteback.app/Contents/MacOS/Pasteback
+          lipo -archs dist/Pasteback.app/Contents/MacOS/pasteback-cli
+          lipo -archs dist/Pasteback.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle
+
+      - name: Package release zip
+        run: |
+          # ditto preserves symlinks, permissions and the adhoc signature.
+          ditto -c -k --keepParent dist/Pasteback.app "Pasteback-${APP_VERSION}.zip"
+          shasum -a 256 "Pasteback-${APP_VERSION}.zip" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create GitHub Release
+        if: env.RELEASE_TAG != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            && gh release upload "$RELEASE_TAG" "Pasteback-${APP_VERSION}.zip" SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY" \
+            || gh release create "$RELEASE_TAG" "Pasteback-${APP_VERSION}.zip" SHA256SUMS \
+                 --title "$RELEASE_TAG" --generate-notes --repo "$GITHUB_REPOSITORY"
+
+      - name: Upload artifacts (no release tag)
+        if: env.RELEASE_TAG == ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Pasteback-${{ env.APP_VERSION }}
+          path: |
+            Pasteback-${{ env.APP_VERSION }}.zip
+            SHA256SUMS
